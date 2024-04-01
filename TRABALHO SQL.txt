@@ -1,0 +1,347 @@
+
+
+-- ESTRUTURA
+
+CREATE SCHEMA trabalho;
+
+CREATE TABLE trabalho.importacao (
+  id serial primary key,
+  cidade varchar(100),
+  estacao character(100),
+  lat float,
+  long float,
+  alt float,
+  hora int,
+  "data" TIMESTAMP,
+  responsavel varchar(50),
+  Temp_Ar_BS FLOAT,
+  MaxT_BS FLOAT,
+  MinT_BS FLOAT,
+  Temp_Ar_PO FLOAT,
+  MaxT_PO FLOAT,
+  MinT_PO FLOAT,
+  Precip_Total FLOAT,
+  Press_At FLOAT,
+  MaxPress_At FLOAT,
+  MinPress_At FLOAT,
+  Rad_Global FLOAT,
+  Umi_Ar FLOAT,
+  MaxUmi_Ar FLOAT,
+  MinUmi_Ar FLOAT,
+  Di_Vent FLOAT,
+  Vel_Vent FLOAT,
+  MaxVelVent FLOAT,
+  MinVelVent FLOAT,
+  Pais varchar(50),
+  Estado varchar(100)
+);
+
+CREATE TABLE trabalho.locais (
+  id serial primary key,
+  cidade varchar(100),
+  estacao character(100),
+  lat float,
+  long float,
+  alt float,
+  Pais varchar(50),
+  Estado varchar(100)
+);
+
+CREATE TABLE trabalho.responsavel (
+  id serial primary key,
+  nome varchar(100)
+);
+
+CREATE TABLE trabalho.registro (
+  id serial primary key,
+  "responsavel" int,
+  "local" int,
+  hora int,
+  "data" TIMESTAMP,
+  Temp_Ar_BS FLOAT,
+  MaxT_BS FLOAT,
+  MinT_BS FLOAT,
+  Temp_Ar_PO FLOAT,
+  MaxT_PO FLOAT,
+  MinT_PO FLOAT,
+  Precip_Total FLOAT,
+  Press_At FLOAT,
+  MaxPress_At FLOAT,
+  MinPress_At FLOAT,
+  Rad_Global FLOAT,
+  Umi_Ar FLOAT,
+  MaxUmi_Ar FLOAT,
+  MinUmi_Ar FLOAT,
+  Di_Vent FLOAT,
+  Vel_Vent FLOAT,
+  MaxVelVent FLOAT,
+  MinVelVent FLOAT,
+  FOREIGN KEY ("responsavel") REFERENCES trabalho.responsavel (id),
+  FOREIGN KEY ("local") REFERENCES trabalho.locais (id)
+);
+
+-- IMPORTACAO
+
+COPY trabalho.importacao(
+  cidade,
+  estacao,
+  lat,
+  long,
+  alt,
+  hora,
+  "data",
+  responsavel,
+  Temp_Ar_BS,
+  MaxT_BS,
+  MinT_BS,
+  Temp_Ar_PO,
+  MaxT_PO,
+  MinT_PO,
+  Precip_total,
+  Press_At,
+  MaxPress_At,
+  MinPress_At,
+  Rad_Global,
+  Umi_Ar,
+  MaxUmi_Ar,
+  MinUmi_Ar,
+  Di_Vent,
+  Vel_Vent,
+  MaxVelVent,
+  MinVelVent,
+  Pais,
+  Estado
+)
+FROM '/dev/shm/trab/SALVADOR.csv' DELIMITER ';' CSV HEADER;
+
+COPY trabalho.importacao(
+  cidade,
+  estacao,
+  lat,
+  long,
+  alt,
+  hora,
+  "data",
+  responsavel,
+  Temp_Ar_BS,
+  MaxT_BS,
+  MinT_BS,
+  Temp_Ar_PO,
+  MaxT_PO,
+  MinT_PO,
+  Precip_total,
+  Press_At,
+  MaxPress_At,
+  MinPress_At,
+  Rad_Global,
+  Umi_Ar,
+  MaxUmi_Ar,
+  MinUmi_Ar,
+  Di_Vent,
+  Vel_Vent,
+  MaxVelVent,
+  MinVelVent,
+  Pais,
+  Estado
+)
+FROM '/dev/shm/trab/ECOPORANGA.csv' DELIMITER ';' CSV HEADER;
+
+COPY trabalho.importacao(
+  cidade,
+  estacao,
+  lat,
+  long,
+  alt,
+  hora,
+  "data",
+  responsavel,
+  Temp_Ar_BS,
+  MaxT_BS,
+  MinT_BS,
+  Temp_Ar_PO,
+  MaxT_PO,
+  MinT_PO,
+  Precip_total,
+  Press_At,
+  MaxPress_At,
+  MinPress_At,
+  Rad_Global,
+  Umi_Ar,
+  MaxUmi_Ar,
+  MinUmi_Ar,
+  Di_Vent,
+  Vel_Vent,
+  MaxVelVent,
+  MinVelVent,
+  Pais,
+  Estado
+)
+FROM '/dev/shm/trab/SANTA_MARIA_MADALENA.csv' DELIMITER ';' CSV HEADER;
+
+-- SCRIPT
+
+do  $$
+declare
+  n_max integer:= (select max(id) from trabalho.importacao);
+  n_min integer:= (select min(id) from trabalho.importacao);
+begin
+for r in n_min..n_max loop
+
+  insert into trabalho.locais(
+    cidade,
+    estacao,
+    lat,
+    long,
+    alt,
+    pais,
+    estado
+  ) 
+    select
+      imp.cidade,
+      imp.estacao,
+      imp.lat,
+      imp.long,
+      imp.alt,
+      imp.pais,
+      imp.estado
+    from trabalho.importacao as imp
+    where 
+      imp.id = r
+      and not exists (select tem.estacao from trabalho.locais as tem where tem.estacao = imp.estacao);
+
+  insert into trabalho.responsavel(nome) 
+    select responsavel from trabalho.importacao as imp
+    where 
+      imp.id = r
+      and not exists (select tem.nome from trabalho.responsavel as tem where tem.nome = imp.responsavel);
+
+  insert into trabalho.registro(
+    "responsavel",
+    "local",
+    hora,
+    "data",
+    Temp_Ar_BS,
+    MaxT_BS,
+    MinT_BS,
+    Temp_Ar_PO,
+    MaxT_PO,
+    MinT_PO,
+    Precip_Total,
+    Press_At,
+    MaxPress_At,
+    MinPress_At,
+    Rad_Global,
+    Umi_Ar,
+    MaxUmi_Ar,
+    MinUmi_Ar,
+    Di_Vent,
+    Vel_Vent,
+    MaxVelVent,
+    MinVelVent
+  ) 
+    select
+      "res"."id",
+      "loc"."id",
+      "imp".hora,
+      "imp"."data",
+      "imp".Temp_Ar_BS,
+      "imp".MaxT_BS,
+      "imp".MinT_BS,
+      "imp".Temp_Ar_PO,
+      "imp".MaxT_PO,
+      "imp".MinT_PO,
+      "imp".Precip_Total,
+      "imp".Press_At,
+      "imp".MaxPress_At,
+      "imp".MinPress_At,
+      "imp".Rad_Global,
+      "imp".Umi_Ar,
+      "imp".MaxUmi_Ar,
+      "imp".MinUmi_Ar,
+      "imp".Di_Vent,
+      "imp".Vel_Vent,
+      "imp".MaxVelVent,
+      "imp".MinVelVent
+    from trabalho.importacao as imp
+    inner join trabalho.locais as loc on loc.estacao = imp.estacao
+    inner join trabalho.responsavel as res on res.nome = imp.responsavel
+    where
+      imp.id = r;
+
+end loop;
+end;
+$$;
+
+-- PERMISSOES
+
+CREATE ROLE supervisor PASSWORD '123456';
+
+GRANT SELECT ON ALL TABLES IN SCHEMA trabalho TO supervisor;
+
+ALTER ROLE supervisor LOGIN;
+
+-- VIEW
+
+CREATE VIEW csv_total AS (
+  select
+      "res"."nome" as nome_responsavel,
+      "loc".*,
+      "dados".hora,
+      "dados"."data",
+      "dados".Temp_Ar_BS,
+      "dados".MaxT_BS,
+      "dados".MinT_BS,
+      "dados".Temp_Ar_PO,
+      "dados".MaxT_PO,
+      "dados".MinT_PO,
+      "dados".Precip_Total,
+      "dados".Press_At,
+      "dados".MaxPress_At,
+      "dados".MinPress_At,
+      "dados".Rad_Global,
+      "dados".Umi_Ar,
+      "dados".MaxUmi_Ar,
+      "dados".MinUmi_Ar,
+      "dados".Di_Vent,
+      "dados".Vel_Vent,
+      "dados".MaxVelVent,
+      "dados".MinVelVent
+    from trabalho.registro as dados
+    inner join trabalho.locais as loc on loc.id = dados.local
+    inner join trabalho.responsavel as res on res.id = dados.responsavel
+);
+
+CREATE VIEW csv_parcial AS (
+  select
+      "dados"."id",
+      "dados".Temp_Ar_BS,
+      "dados".Temp_Ar_PO,
+      "dados".Precip_Total,
+      "dados".Press_At,
+      "dados".Rad_Global,
+      "dados".Umi_Ar,
+      "dados".Di_Vent,
+      "dados".Vel_Vent
+    from trabalho.registro as dados
+    inner join trabalho.locais as loc on loc.id = dados.local
+    inner join trabalho.responsavel as res on res.id = dados.responsavel
+);
+
+-- SELECTS
+
+SELECT * FROM trabalho.locais;
+SELECT * FROM trabalho.responsavel;
+SELECT * FROM trabalho.registro;
+
+-- SELECTS DAS VIEWS
+
+SELECT * FROM csv_total;
+SELECT * FROM csv_parcial;
+
+-- APAGA TUDO
+
+TRUNCATE TABLE trabalho.importacao;
+
+DROP SCHEMA trabalho;
+DROP VIEW csv_total;
+DROP VIEW csv_parcial;
